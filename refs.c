@@ -869,28 +869,37 @@ int is_root_ref(struct ref_store *refs, const char *refname)
 		"NOTES_MERGE_REF",
 		"MERGE_AUTOSTASH",
 	};
-	struct object_id oid;
+	struct strbuf referent = STRBUF_INIT;
+	struct object_id oid = { 0 };
+	int failure_errno, ret = 0;
+	unsigned int flags;
 	size_t i;
 
 	if (!is_root_ref_syntax(refname))
 		return 0;
 
+	/*
+	 * Note that we cannot use `refs_ref_exists()` here because that also
+	 * checks whether its target ref exists in case refname is a symbolic
+	 * ref.
+	 */
 	if (ends_with(refname, "_HEAD")) {
-		refs_resolve_ref_unsafe(refs, refname,
-					RESOLVE_REF_READING | RESOLVE_REF_NO_RECURSE,
-					&oid, NULL);
-		return !is_null_oid(&oid);
+		ret = !refs_read_raw_ref(refs, refname, &oid, &referent,
+					 &flags, &failure_errno);
+		goto done;
 	}
 
-	for (i = 0; i < ARRAY_SIZE(irregular_root_refs); i++)
+	for (i = 0; i < ARRAY_SIZE(irregular_root_refs); i++) {
 		if (!strcmp(refname, irregular_root_refs[i])) {
-			refs_resolve_ref_unsafe(refs, refname,
-						RESOLVE_REF_READING | RESOLVE_REF_NO_RECURSE,
-						&oid, NULL);
-			return !is_null_oid(&oid);
+			ret = !refs_read_raw_ref(refs, refname, &oid, &referent,
+						 &flags, &failure_errno);
+			goto done;
 		}
+	}
 
-	return 0;
+done:
+	strbuf_release(&referent);
+	return ret;
 }
 
 int is_headref(struct ref_store *refs, const char *refname)

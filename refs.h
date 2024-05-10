@@ -1052,7 +1052,8 @@ extern struct ref_namespace_info ref_namespace[NAMESPACE__COUNT];
 void update_ref_namespace(enum ref_namespace namespace, char *ref);
 
 /*
- * Check whether the reference is an existing root reference.
+ * Check whether the reference is an existing root reference. A root reference
+ * that is a dangling symbolic ref is considered to exist.
  *
  * A root ref is a reference that lives in the root of the reference hierarchy.
  * These references must conform to special syntax:
