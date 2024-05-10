@@ -863,6 +863,7 @@ static int is_root_ref_syntax(const char *refname)
 int is_root_ref(struct ref_store *refs, const char *refname)
 {
 	static const char *const irregular_root_refs[] = {
+		"HEAD",
 		"AUTO_MERGE",
 		"BISECT_EXPECTED_REV",
 		"NOTES_MERGE_PARTIAL",
@@ -900,14 +901,6 @@ int is_root_ref(struct ref_store *refs, const char *refname)
 done:
 	strbuf_release(&referent);
 	return ret;
-}
-
-int is_headref(struct ref_store *refs, const char *refname)
-{
-	if (!strcmp(refname, "HEAD"))
-		return refs_ref_exists(refs, refname);
-
-	return 0;
 }
 
 static int is_current_worktree_ref(const char *ref) {
