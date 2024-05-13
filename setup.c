@@ -1840,8 +1840,6 @@ int daemonize(void)
 #define TEST_FILEMODE 1
 #endif
 
-#define GIT_DEFAULT_HASH_ENVIRONMENT "GIT_DEFAULT_HASH"
-
 static void copy_templates_1(struct strbuf *path, struct strbuf *template_path,
 			     DIR *dir)
 {
