@@ -1,5 +1,6 @@
 #include "git-compat-util.h"
 #include "abspath.h"
+#include "environment.h"
 #include "repository.h"
 #include "object-store-ll.h"
 #include "config.h"
@@ -19,6 +20,27 @@
 static struct repository the_repo;
 struct repository *the_repository = &the_repo;
 
+static void set_default_hash_algo(struct repository *repo)
+{
+	const char *hash_name;
+	int algo;
+
+	hash_name = getenv(GIT_DEFAULT_HASH_ENVIRONMENT);
+	if (!hash_name)
+		return;
+	algo = hash_algo_by_name(hash_name);
+
+	/*
+	 * NEEDSWORK: after all, falling back to SHA-1 by assigning
+	 * GIT_HASH_SHA1 to algo here, instead of returning, may give
+	 * us better behaviour.
+	 */
+	if (algo == GIT_HASH_UNKNOWN)
+		return;
+
+	repo_set_hash_algo(repo, algo);
+}
+
 void initialize_repository(struct repository *repo)
 {
 	repo->objects = raw_object_store_new();
@@ -26,6 +48,24 @@ void initialize_repository(struct repository *repo)
 	repo->parsed_objects = parsed_object_pool_new();
 	ALLOC_ARRAY(repo->index, 1);
 	index_state_init(repo->index, repo);
+
+	/*
+	 * When a command runs inside a repository, it learns what
+	 * hash algorithm is in use from the repository, but some
+	 * commands are designed to work outside a repository, yet
+	 * they want to access the_hash_algo, if only for the length
+	 * of the hashed value to see if their input looks like a
+	 * plausible hash value.
+	 *
+	 * We are in the process of identifying the codepaths and
+	 * giving them an appropriate default individually; any
+	 * unconverted codepath that tries to access the_hash_algo
+	 * will thus fail.  The end-users however have an escape hatch
+	 * to set GIT_DEFAULT_HASH environment variable to "sha1" get
+	 * back the old behaviour of defaulting to SHA-1.
+	 */
+	if (repo == the_repository)
+		set_default_hash_algo(repo);
 }
 
 static void expand_base_dir(char **out, const char *in,
